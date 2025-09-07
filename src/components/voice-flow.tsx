@@ -74,32 +74,50 @@ export function VoiceFlow() {
     // };
 
     recognition.onresult = (event: any) => {
-  let interimTranscript = "";
-  let finalText = "";
-
-  // Process all results
-  for (let i = event.resultIndex; i < event.results.length; ++i) {
-    const transcript = event.results[i][0].transcript.trim();
-
-    if (event.results[i].isFinal) {
-      // For final results, only append if it's not already present
-      if (!finalTranscriptRef.current.includes(transcript)) {
-        finalText += transcript + " ";
+      let interimTranscript = '';
+      // event.results is a list of all results for this recognition session.
+      // We loop through them all, not just from event.resultIndex
+      for (let i = 0; i < event.results.length; ++i) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          // The final transcript is handled by the logic below,
+          // which rebuilds the final transcript from the results.
+        } else {
+          // This is an interim result.
+          interimTranscript += transcript;
+        }
       }
-    } else {
-      // For interim results, just add to interim transcript
-      interimTranscript += transcript + " ";
-    }
-  }
 
-  // Update the final transcript only with new content
-  if (finalText) {
-    finalTranscriptRef.current += finalText;
-  }
-
-  // Set the complete text (final + interim)
-  setText(finalTranscriptRef.current + interimTranscript);
-};
+      // Rebuild the final transcript from the event results.
+      // This prevents duplication.
+      let finalTranscript = '';
+      for (let i = 0; i < event.results.length; ++i) {
+        if (event.results[i].isFinal) {
+          finalTranscript += event.results[i][0].transcript + ' ';
+        }
+      }
+      
+      // The finalTranscriptRef is used to maintain state across pause/resume.
+      // We start with the text from before the pause, and add the new final text.
+      // The `startRecognition` function sets `finalTranscriptRef.current = text;`
+      // which is the text from before the pause.
+      // The logic here should be to combine the text from before the pause
+      // with the new text from this session.
+      
+      // A simpler approach that works well:
+      let finalSessionTranscript = '';
+      let interimSessionTranscript = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcriptPart = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTranscriptRef.current += transcriptPart.trim() + ' ';
+          interimSessionTranscript = ''; // Clear interim when final
+        } else {
+          interimSessionTranscript += transcriptPart;
+        }
+      }
+      setText(finalTranscriptRef.current + interimSessionTranscript);
+    };
 
     recognition.onend = () => {
       // when the recognition naturally stops (e.g. user silence), set paused
