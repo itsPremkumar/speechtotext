@@ -48,99 +48,161 @@ export function VoiceFlow() {
 
   const isApiSupported = !!SpeechRecognitionCtor;
 
-  const startRecognition = () => {
-    if (!SpeechRecognitionCtor) return;
+//   const startRecognition = () => {
+//     if (!SpeechRecognitionCtor) return;
 
-    // initialize final transcript with current text so resume keeps previous content
-    finalTranscriptRef.current = text;
+//     // initialize final transcript with current text so resume keeps previous content
+//     finalTranscriptRef.current = text;
 
-    // create a new recognition instance
-    const recognition = new SpeechRecognitionCtor();
-    recognition.lang = selectedLanguage; // Use selected language instead of hardcoded "ta-IN"
-    recognition.continuous = true;
-    recognition.interimResults = true;
+//     // create a new recognition instance
+//     const recognition = new SpeechRecognitionCtor();
+//     recognition.lang = selectedLanguage; // Use selected language instead of hardcoded "ta-IN"
+//     recognition.continuous = true;
+//     recognition.interimResults = true;
 
-    // recognition.onresult = (event: any) => {
-    //   // event typing is any to avoid missing lib types
-    //   let interimTranscript = "";
-    //   for (let i = event.resultIndex; i < event.results.length; ++i) {
-    //     if (event.results[i].isFinal) {
-    //       finalTranscriptRef.current += event.results[i][0].transcript + " ";
-    //     } else {
-    //       interimTranscript += event.results[i][0].transcript;
-    //     }
-    //   }
-    //   setText(finalTranscriptRef.current + interimTranscript);
-    // };
+//     // recognition.onresult = (event: any) => {
+//     //   // event typing is any to avoid missing lib types
+//     //   let interimTranscript = "";
+//     //   for (let i = event.resultIndex; i < event.results.length; ++i) {
+//     //     if (event.results[i].isFinal) {
+//     //       finalTranscriptRef.current += event.results[i][0].transcript + " ";
+//     //     } else {
+//     //       interimTranscript += event.results[i][0].transcript;
+//     //     }
+//     //   }
+//     //   setText(finalTranscriptRef.current + interimTranscript);
+//     // };
 
-    recognition.onresult = (event: any) => {
-      let interimTranscript = '';
-      // event.results is a list of all results for this recognition session.
-      // We loop through them all, not just from event.resultIndex
-      for (let i = 0; i < event.results.length; ++i) {
-        const transcript = event.results[i][0].transcript;
-        if (event.results[i].isFinal) {
-          // The final transcript is handled by the logic below,
-          // which rebuilds the final transcript from the results.
-        } else {
-          // This is an interim result.
-          interimTranscript += transcript;
-        }
-      }
+//     // recognition.onresult = (event: any) => {
+//     //   let interimTranscript = '';
+//     //   // event.results is a list of all results for this recognition session.
+//     //   // We loop through them all, not just from event.resultIndex
+//     //   for (let i = 0; i < event.results.length; ++i) {
+//     //     const transcript = event.results[i][0].transcript;
+//     //     if (event.results[i].isFinal) {
+//     //       // The final transcript is handled by the logic below,
+//     //       // which rebuilds the final transcript from the results.
+//     //     } else {
+//     //       // This is an interim result.
+//     //       interimTranscript += transcript;
+//     //     }
+//     //   }
 
-      // Rebuild the final transcript from the event results.
-      // This prevents duplication.
-      let finalTranscript = '';
-      for (let i = 0; i < event.results.length; ++i) {
-        if (event.results[i].isFinal) {
-          finalTranscript += event.results[i][0].transcript + ' ';
-        }
-      }
+//     //   // Rebuild the final transcript from the event results.
+//     //   // This prevents duplication.
+//     //   let finalTranscript = '';
+//     //   for (let i = 0; i < event.results.length; ++i) {
+//     //     if (event.results[i].isFinal) {
+//     //       finalTranscript += event.results[i][0].transcript + ' ';
+//     //     }
+//     //   }
       
-      // The finalTranscriptRef is used to maintain state across pause/resume.
-      // We start with the text from before the pause, and add the new final text.
-      // The `startRecognition` function sets `finalTranscriptRef.current = text;`
-      // which is the text from before the pause.
-      // The logic here should be to combine the text from before the pause
-      // with the new text from this session.
+//     //   // The finalTranscriptRef is used to maintain state across pause/resume.
+//     //   // We start with the text from before the pause, and add the new final text.
+//     //   // The `startRecognition` function sets `finalTranscriptRef.current = text;`
+//     //   // which is the text from before the pause.
+//     //   // The logic here should be to combine the text from before the pause
+//     //   // with the new text from this session.
       
-      // A simpler approach that works well:
-      let finalSessionTranscript = '';
-      let interimSessionTranscript = '';
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const transcriptPart = event.results[i][0].transcript;
-        if (event.results[i].isFinal) {
-          finalTranscriptRef.current += transcriptPart.trim() + ' ';
-          interimSessionTranscript = ''; // Clear interim when final
-        } else {
-          interimSessionTranscript += transcriptPart;
-        }
+//     //   // A simpler approach that works well:
+//     //   let finalSessionTranscript = '';
+//     //   let interimSessionTranscript = '';
+//     //   for (let i = event.resultIndex; i < event.results.length; i++) {
+//     //     const transcriptPart = event.results[i][0].transcript;
+//     //     if (event.results[i].isFinal) {
+//     //       finalTranscriptRef.current += transcriptPart.trim() + ' ';
+//     //       interimSessionTranscript = ''; // Clear interim when final
+//     //     } else {
+//     //       interimSessionTranscript += transcriptPart;
+//     //     }
+//     //   }
+//     //   setText(finalTranscriptRef.current + interimSessionTranscript);
+//     // };
+//     recognition.onresult = (event: any) => {
+//   let interimTranscript = "";
+
+//   // ✅ Only process results from event.resultIndex (avoids duplicates)
+//   for (let i = event.resultIndex; i < event.results.length; i++) {
+//     const transcript = event.results[i][0].transcript;
+//     if (event.results[i].isFinal) {
+//       finalTranscriptRef.current += transcript.trim() + " ";
+//     } else {
+//       interimTranscript += transcript;
+//     }
+//   }
+
+//   // ✅ Update text with confirmed + interim
+//   setText(finalTranscriptRef.current + interimTranscript);
+// };
+
+//     recognition.onend = () => {
+//       // when the recognition naturally stops (e.g. user silence), set paused
+//       if (recognitionRef.current) {
+//         setStatus("paused");
+//       }
+//     };
+
+//     recognition.onerror = (err: any) => {
+//       // optional: you can show a toast for errors
+//       console.error("SpeechRecognition error", err);
+//       toast({
+//         title: "Microphone error",
+//         description: "There was an issue with speech recognition. Check microphone permissions.",
+//       });
+//       setStatus("idle");
+//       recognitionRef.current = null;
+//     };
+
+//     recognition.start();
+//     setStatus("recording");
+//     recognitionRef.current = recognition;
+//   };
+const startRecognition = () => {
+  if (!SpeechRecognitionCtor) return;
+
+  finalTranscriptRef.current = text;
+
+  const recognition = new SpeechRecognitionCtor();
+  recognition.lang = selectedLanguage; // "ta-IN"
+  recognition.continuous = true;
+  recognition.interimResults = true;
+
+  // ✅ fixed onresult to avoid duplicates
+  recognition.onresult = (event: any) => {
+    let interimTranscript = "";
+
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      const transcript = event.results[i][0].transcript;
+      if (event.results[i].isFinal) {
+        finalTranscriptRef.current += transcript.trim() + " ";
+      } else {
+        interimTranscript += transcript;
       }
-      setText(finalTranscriptRef.current + interimSessionTranscript);
-    };
+    }
 
-    recognition.onend = () => {
-      // when the recognition naturally stops (e.g. user silence), set paused
-      if (recognitionRef.current) {
-        setStatus("paused");
-      }
-    };
-
-    recognition.onerror = (err: any) => {
-      // optional: you can show a toast for errors
-      console.error("SpeechRecognition error", err);
-      toast({
-        title: "Microphone error",
-        description: "There was an issue with speech recognition. Check microphone permissions.",
-      });
-      setStatus("idle");
-      recognitionRef.current = null;
-    };
-
-    recognition.start();
-    setStatus("recording");
-    recognitionRef.current = recognition;
+    setText(finalTranscriptRef.current + interimTranscript);
   };
+
+  recognition.onend = () => {
+    if (recognitionRef.current) {
+      setStatus("paused");
+    }
+  };
+
+  recognition.onerror = (err: any) => {
+    console.error("SpeechRecognition error", err);
+    toast({
+      title: "Microphone error",
+      description: "There was an issue with speech recognition. Check microphone permissions.",
+    });
+    setStatus("idle");
+    recognitionRef.current = null;
+  };
+
+  recognition.start();
+  setStatus("recording");
+  recognitionRef.current = recognition;
+};
 
   const stopRecognition = (nextStatus: "paused" | "idle") => {
     if (recognitionRef.current) {
