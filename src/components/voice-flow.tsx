@@ -1,13 +1,12 @@
 "use client";
 
-import { enhanceTranscriptionReadability } from "@/ai/flows/enhance-transcription-readability";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { Copy, Loader2, Mic, MicOff, Pause, Play, WandSparkles } from "lucide-react";
+import { Copy, Mic, MicOff, Pause, Play } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 declare global {
@@ -21,7 +20,6 @@ export function VoiceFlow() {
   const [status, setStatus] = useState<"idle" | "recording" | "paused">("idle");
   const [text, setText] = useState("");
   const [outputMode, setOutputMode] = useState<"textarea" | "card" | "editor">("textarea");
-  const [isEnhancing, setIsEnhancing] = useState(false);
   const [isClient, setIsClient] = useState(false);
 
   const recognitionRef = useRef<SpeechRecognition | null>(null);
@@ -101,30 +99,6 @@ export function VoiceFlow() {
       title: "Success!",
       description: "Text copied to clipboard.",
     });
-  };
-
-  const handleEnhance = async () => {
-    if (!text) return;
-    setIsEnhancing(true);
-    try {
-      const result = await enhanceTranscriptionReadability({ tamilText: text });
-      if (result.enhancedText) {
-        setText(result.enhancedText);
-        toast({
-          title: "AI Enhancement Complete",
-          description: "Your text has been formatted for readability.",
-        });
-      }
-    } catch (error) {
-      console.error("AI enhancement failed:", error);
-      toast({
-        variant: "destructive",
-        title: "Enhancement Failed",
-        description: "Could not enhance the text at this time.",
-      });
-    } finally {
-      setIsEnhancing(false);
-    }
   };
 
   const renderTextOutput = () => {
@@ -218,10 +192,6 @@ export function VoiceFlow() {
           <Button onClick={handleStopClick} size="lg" variant="destructive" disabled={status === 'idle'}>
             <MicOff className="mr-2 h-4 w-4" />
             Stop
-          </Button>
-          <Button onClick={handleEnhance} size="lg" variant="outline" disabled={isEnhancing || !text}>
-            {isEnhancing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <WandSparkles className="mr-2 h-4 w-4" />}
-            Enhance
           </Button>
         </div>
       </CardFooter>
