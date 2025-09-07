@@ -75,18 +75,29 @@ export function VoiceFlow() {
 
     recognition.onresult = (event: any) => {
   let interimTranscript = "";
+  let finalText = "";
+
+  // Process all results
   for (let i = event.resultIndex; i < event.results.length; ++i) {
     const transcript = event.results[i][0].transcript.trim();
 
     if (event.results[i].isFinal) {
-      // ✅ Prevent duplicate final text
-      if (!finalTranscriptRef.current.endsWith(transcript + " ")) {
-        finalTranscriptRef.current += transcript + " ";
+      // For final results, only append if it's not already present
+      if (!finalTranscriptRef.current.includes(transcript)) {
+        finalText += transcript + " ";
       }
     } else {
-      interimTranscript += transcript;
+      // For interim results, just add to interim transcript
+      interimTranscript += transcript + " ";
     }
   }
+
+  // Update the final transcript only with new content
+  if (finalText) {
+    finalTranscriptRef.current += finalText;
+  }
+
+  // Set the complete text (final + interim)
   setText(finalTranscriptRef.current + interimTranscript);
 };
 
