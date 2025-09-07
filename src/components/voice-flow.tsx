@@ -9,7 +9,6 @@ import { cn } from "@/lib/utils";
 import { Copy, Mic, MicOff, Pause, Play } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
-
 declare global {
   interface Window {
     SpeechRecognition?: any;
@@ -22,6 +21,9 @@ export function VoiceFlow() {
   const [text, setText] = useState("");
   const [outputMode, setOutputMode] = useState<"textarea" | "card" | "editor">("textarea");
   const [isClient, setIsClient] = useState(false);
+  // const [selectedLanguage, setSelectedLanguage] = useState("en-US"); for english
+
+    const [selectedLanguage, setSelectedLanguage] = useState("ta-IN"); // Add this to your state declarations
 
   // Keep the recognition instance here (any because TS DOM types for SpeechRecognition may not exist)
   const recognitionRef = useRef<any | null>(null);
@@ -31,6 +33,12 @@ export function VoiceFlow() {
 
   useEffect(() => {
     setIsClient(true);
+
+    return () => {
+      if (recognitionRef.current) {
+        stopRecognition("idle");
+      }
+    };
   }, []);
 
   // Resolve the constructor only on client
@@ -48,7 +56,7 @@ export function VoiceFlow() {
 
     // create a new recognition instance
     const recognition = new SpeechRecognitionCtor();
-    recognition.lang = "ta-IN";
+    recognition.lang = selectedLanguage; // Use selected language instead of hardcoded "ta-IN"
     recognition.continuous = true;
     recognition.interimResults = true;
 
