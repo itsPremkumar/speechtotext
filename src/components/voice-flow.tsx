@@ -9,10 +9,11 @@ import { cn } from "@/lib/utils";
 import { Copy, Mic, MicOff, Pause, Play } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
+
 declare global {
   interface Window {
-    SpeechRecognition: typeof SpeechRecognition;
-    webkitSpeechRecognition: typeof SpeechRecognition;
+    SpeechRecognition?: any;
+    webkitSpeechRecognition?: any;
   }
 }
 
@@ -22,8 +23,9 @@ export function VoiceFlow() {
   const [outputMode, setOutputMode] = useState<"textarea" | "card" | "editor">("textarea");
   const [isClient, setIsClient] = useState(false);
 
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
-  const finalTranscriptRef = useRef("");
+  // Keep the recognition instance here (any because TS DOM types for SpeechRecognition may not exist)
+  const recognitionRef = useRef<any | null>(null);
+  const finalTranscriptRef = useRef<string>("");
 
   const { toast } = useToast();
 
@@ -31,24 +33,31 @@ export function VoiceFlow() {
     setIsClient(true);
   }, []);
 
-  const SpeechRecognition = isClient ? window.SpeechRecognition || window.webkitSpeechRecognition : null;
-  const isApiSupported = !!SpeechRecognition;
+  // Resolve the constructor only on client
+  const SpeechRecognitionCtor = isClient
+    ? (window.SpeechRecognition ?? window.webkitSpeechRecognition)
+    : null;
+
+  const isApiSupported = !!SpeechRecognitionCtor;
 
   const startRecognition = () => {
-    if (!SpeechRecognition) return;
+    if (!SpeechRecognitionCtor) return;
 
+    // initialize final transcript with current text so resume keeps previous content
     finalTranscriptRef.current = text;
 
-    const recognition = new SpeechRecognition();
+    // create a new recognition instance
+    const recognition = new SpeechRecognitionCtor();
     recognition.lang = "ta-IN";
     recognition.continuous = true;
     recognition.interimResults = true;
 
-    recognition.onresult = (event) => {
+    recognition.onresult = (event: any) => {
+      // event typing is any to avoid missing lib types
       let interimTranscript = "";
       for (let i = event.resultIndex; i < event.results.length; ++i) {
         if (event.results[i].isFinal) {
-          finalTranscriptRef.current += event.results[i][0].transcript + ' ';
+          finalTranscriptRef.current += event.results[i][0].transcript + " ";
         } else {
           interimTranscript += event.results[i][0].transcript;
         }
@@ -57,11 +66,23 @@ export function VoiceFlow() {
     };
 
     recognition.onend = () => {
+      // when the recognition naturally stops (e.g. user silence), set paused
       if (recognitionRef.current) {
         setStatus("paused");
       }
     };
-    
+
+    recognition.onerror = (err: any) => {
+      // optional: you can show a toast for errors
+      console.error("SpeechRecognition error", err);
+      toast({
+        title: "Microphone error",
+        description: "There was an issue with speech recognition. Check microphone permissions.",
+      });
+      setStatus("idle");
+      recognitionRef.current = null;
+    };
+
     recognition.start();
     setStatus("recording");
     recognitionRef.current = recognition;
@@ -69,14 +90,23 @@ export function VoiceFlow() {
 
   const stopRecognition = (nextStatus: "paused" | "idle") => {
     if (recognitionRef.current) {
-      recognitionRef.current.onend = null; 
-      recognitionRef.current.stop();
+      // remove handlers to avoid onend setting paused unexpectedly after stop
+      try {
+        recognitionRef.current.onend = null;
+      } catch {
+        /* ignore */
+      }
+      try {
+        recognitionRef.current.stop();
+      } catch {
+        /* ignore */
+      }
       recognitionRef.current = null;
     }
     setStatus(nextStatus);
-    if (nextStatus === 'idle') {
-      setText('');
-      finalTranscriptRef.current = '';
+    if (nextStatus === "idle") {
+      setText("");
+      finalTranscriptRef.current = "";
     }
   };
 
@@ -134,20 +164,20 @@ export function VoiceFlow() {
   };
 
   const getPrimaryButton = () => {
-    if (status === 'recording') {
-        return (
-            <Button onClick={handlePrimaryClick} size="lg" variant="secondary" className="w-40">
-                <Pause className="mr-2 h-4 w-4" />
-                Pause
-            </Button>
-        );
-    }
-    const label = status === 'paused' ? 'Resume' : 'Start';
-    return (
-        <Button onClick={handlePrimaryClick} size="lg" disabled={!isApiSupported} className="w-40">
-            <Play className="mr-2 h-4 w-4" />
-            {label}
+    if (status === "recording") {
+      return (
+        <Button onClick={handlePrimaryClick} size="lg" variant="secondary" className="w-40">
+          <Pause className="mr-2 h-4 w-4" />
+          Pause
         </Button>
+      );
+    }
+    const label = status === "paused" ? "Resume" : "Start";
+    return (
+      <Button onClick={handlePrimaryClick} size="lg" disabled={!isApiSupported} className="w-40">
+        <Play className="mr-2 h-4 w-4" />
+        {label}
+      </Button>
     );
   };
 
@@ -186,10 +216,15 @@ export function VoiceFlow() {
         {renderTextOutput()}
       </CardContent>
       <CardFooter className="flex flex-col items-center gap-6 pt-6">
-        <Mic className={cn("h-12 w-12 text-muted-foreground transition-colors", status === 'recording' && "text-accent animate-pulse")} />
+        <Mic
+          className={cn(
+            "h-12 w-12 text-muted-foreground transition-colors",
+            status === "recording" && "text-accent animate-pulse"
+          )}
+        />
         <div className="flex items-center justify-center gap-2 flex-wrap">
           {getPrimaryButton()}
-          <Button onClick={handleStopClick} size="lg" variant="destructive" disabled={status === 'idle'}>
+          <Button onClick={handleStopClick} size="lg" variant="destructive" disabled={status === "idle"}>
             <MicOff className="mr-2 h-4 w-4" />
             Stop
           </Button>
