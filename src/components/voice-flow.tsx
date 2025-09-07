@@ -23,7 +23,7 @@ export function VoiceFlow() {
   const [isClient, setIsClient] = useState(false);
 
   const recognitionRef = useRef<SpeechRecognition | null>(null);
-  const accumulatedTextRef = useRef("");
+  const finalTranscriptRef = useRef("");
 
   const { toast } = useToast();
 
@@ -37,7 +37,7 @@ export function VoiceFlow() {
   const startRecognition = () => {
     if (!SpeechRecognition) return;
 
-    accumulatedTextRef.current = text + (text ? " " : "");
+    finalTranscriptRef.current = text;
 
     const recognition = new SpeechRecognition();
     recognition.lang = "ta-IN";
@@ -46,23 +46,19 @@ export function VoiceFlow() {
 
     recognition.onresult = (event) => {
       let interimTranscript = "";
-      let finalTranscript = "";
-
-      for (let i = 0; i < event.results.length; i++) {
-        const transcript = event.results[i][0].transcript;
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
         if (event.results[i].isFinal) {
-          finalTranscript += transcript;
+          finalTranscriptRef.current += event.results[i][0].transcript + ' ';
         } else {
-          interimTranscript += transcript;
+          interimTranscript += event.results[i][0].transcript;
         }
       }
-      setText(accumulatedTextRef.current + finalTranscript + interimTranscript);
+      setText(finalTranscriptRef.current + interimTranscript);
     };
 
     recognition.onend = () => {
       if (recognitionRef.current) {
         setStatus("paused");
-        recognitionRef.current = null;
       }
     };
     
@@ -78,6 +74,10 @@ export function VoiceFlow() {
       recognitionRef.current = null;
     }
     setStatus(nextStatus);
+    if (nextStatus === 'idle') {
+      setText('');
+      finalTranscriptRef.current = '';
+    }
   };
 
   const handlePrimaryClick = () => {
