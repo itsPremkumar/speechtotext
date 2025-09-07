@@ -60,18 +60,35 @@ export function VoiceFlow() {
     recognition.continuous = true;
     recognition.interimResults = true;
 
+    // recognition.onresult = (event: any) => {
+    //   // event typing is any to avoid missing lib types
+    //   let interimTranscript = "";
+    //   for (let i = event.resultIndex; i < event.results.length; ++i) {
+    //     if (event.results[i].isFinal) {
+    //       finalTranscriptRef.current += event.results[i][0].transcript + " ";
+    //     } else {
+    //       interimTranscript += event.results[i][0].transcript;
+    //     }
+    //   }
+    //   setText(finalTranscriptRef.current + interimTranscript);
+    // };
+
     recognition.onresult = (event: any) => {
-      // event typing is any to avoid missing lib types
-      let interimTranscript = "";
-      for (let i = event.resultIndex; i < event.results.length; ++i) {
-        if (event.results[i].isFinal) {
-          finalTranscriptRef.current += event.results[i][0].transcript + " ";
-        } else {
-          interimTranscript += event.results[i][0].transcript;
-        }
+  let interimTranscript = "";
+  for (let i = event.resultIndex; i < event.results.length; ++i) {
+    const transcript = event.results[i][0].transcript.trim();
+
+    if (event.results[i].isFinal) {
+      // ✅ Prevent duplicate final text
+      if (!finalTranscriptRef.current.endsWith(transcript + " ")) {
+        finalTranscriptRef.current += transcript + " ";
       }
-      setText(finalTranscriptRef.current + interimTranscript);
-    };
+    } else {
+      interimTranscript += transcript;
+    }
+  }
+  setText(finalTranscriptRef.current + interimTranscript);
+};
 
     recognition.onend = () => {
       // when the recognition naturally stops (e.g. user silence), set paused
